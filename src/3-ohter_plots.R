@@ -35,7 +35,7 @@ lapply(fig_a12_samples, \(x){
     dep_var %in% c("Firm Wage Premium", "Log Hourly Wage", "Log Hours", "Log Earnings"), 
     interaction_group=="none", !(sample=="le5_panelsize0-acco_alt"&distance>4)) |> 
   plot_event(main_map, group_var = "dep_var")) |>
-  choclow_ggsave(paste0("a12 - ", x), output_dir = outdir_elec)
+  choclow_ggsave(paste0("a12-", x), output_dir = outdir_elec)
 })
 
 
@@ -103,7 +103,7 @@ lapply(fig_a7_vars, \(x){
     ggplot(aes(x=mean_xval, y = fe0215_mlo_le))+
     geom_point(size=4, color = '#800020')+
     theme_choclow()+labs(y="Firm Premium", x="")) |>
-    choclow_ggsave(paste0("fig_a7 - ", x), output_dir = outdir_main)
+    choclow_ggsave(paste0("fig_a7-", x), output_dir = outdir_main)
 })
 
 
@@ -133,4 +133,4 @@ AKM_SUMMS <- read_csv(paste0(external_path, "casd_export2/misc-descriptive_stati
   geom_text(aes(label = paste0(round(prop,3)*100,"%"), x= text_pos), size=4, color = "black", show.legend = FALSE)+
   theme_choclow()+labs(y="", x= "", fill = "AKM Quantile", color = "AKM Quantile")+ 
   guides(fill = guide_legend(reverse = TRUE), color = guide_legend(reverse = TRUE))) |>
-  choclow_ggsave("fig_a8 - AKM Quantiles", output_dir = outdir_main)
+  choclow_ggsave("fig_a8-AKM Quantiles", output_dir = outdir_main)
