@@ -100,7 +100,16 @@ read_S2 <- function(){
 read_S1 <- function(){
   files <- list.files(file.path(path_S1, "event_studies-main_samples"),
                       full.names = TRUE, pattern = "\\.csv$")
-  map_df(files, read_csv, show_col_types = FALSE)
+  ES <- map_df(files, read_csv, show_col_types = FALSE)
+  # S1 omits the d = -1 reference period (implicit beta = 0). Insert it
+  # explicitly so plots show a continuous timeline through the cutoff,
+  # mirroring choclow_export-main/src/1-merge_exports.R.
+  ES |>
+    group_by(across(any_of(c("sample", "dep_var", "interaction_group", "description")))) |>
+    group_modify(~ add_row(.x, .before = 0,
+                           distance = -1L, beta = 0,
+                           std_error = NA_real_)) |>
+    ungroup()
 }
 
 ES_S1 <- read_S1()
