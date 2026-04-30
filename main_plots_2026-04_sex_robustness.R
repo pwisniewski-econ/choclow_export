@@ -124,10 +124,11 @@ build_fig1 <- function(sex_code) {
     mutate(dep_var_label = label_dep(dep_var)) |>
     select(distance, beta, std_error, dep_var_label)
 
-  firm <- ES_S1 |>
+  firm <- ES_S2 |>
     filter(sample == "le5_panelsize0",
            interaction_group == paste0("sx:", sex_code),
-           dep_var == "fe0215_mlo_le") |>
+           dep_var == "fe0215_mlo_le",
+           is.na(description)) |>
     mutate(dep_var_label = label_dep(dep_var)) |>
     select(distance, beta, std_error, dep_var_label)
 

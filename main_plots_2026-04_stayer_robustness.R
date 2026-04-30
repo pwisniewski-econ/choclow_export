@@ -153,10 +153,11 @@ build_fig1 <- function(sample_name) {
            is.na(description)) |>
     select(distance, beta, std_error, dep_var_label)
 
-  firm <- ES_S1 |>
+  firm <- ES_S2 |>
     filter(sample == sample_name,
            dep_var == "fe0215_mlo_le",
-           interaction_group == "none") |>
+           interaction_group == "none",
+           is.na(description)) |>
     select(distance, beta, std_error, dep_var_label)
 
   if (nrow(indiv) == 0 || nrow(firm) == 0) {

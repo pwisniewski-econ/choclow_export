@@ -155,7 +155,9 @@ ES_S1_main <- load_event_studies(path_S1, "event_studies-main_samples")
 ES_S1_elec <- load_event_studies(path_S1, "event_studies-elec_samples")
 ES_S2_main <- load_event_studies(path_S2, "event_studies-main_samples")
 
-# Figure 1 — wage decomposition (hybrid: FE from S1, others from S2) ------
+# Figure 1 — wage decomposition (all curves from S2 to align reference period
+# at d=-2; previously was hybrid with firm wage premium from S1, but S1 uses
+# ref="-1" while S2 uses ref="-2", so superposition was inconsistent). ------
 fig1_individual <- ES_S2_main |>
   filter(sample == "le5_panelsize0",
          dep_var %in% c("lnsbrhour", "lnnbheur", "lnsbr"),
@@ -163,7 +165,7 @@ fig1_individual <- ES_S2_main |>
          is.na(description)) |>
   select(distance, beta, std_error, dep_var_label)
 
-fig1_firm <- ES_S1_main |>
+fig1_firm <- ES_S2_main |>
   filter(sample == "le5_panelsize0",
          dep_var == "fe0215_mlo_le",
          interaction_group == "none") |>
@@ -221,10 +223,11 @@ save_pdf(p1, "fig_1_wage_decomposition")
 # LE/MLO trajectories from the AKM estimation sample). Used in the response to
 # Referee 2 to illustrate how the contamination correction shifts the share
 # of the hourly-wage scar attributable to the firm premium.
-fig1_firm_god2 <- ES_S1_main |>
+fig1_firm_god2 <- ES_S2_main |>
   filter(sample == "le5_panelsize0",
          dep_var == "fe0215_god2",
-         interaction_group == "none") |>
+         interaction_group == "none",
+         is.na(description)) |>
   mutate(dep_var_label = "Firm Wage Premium") |>
   select(distance, beta, std_error, dep_var_label)
 
@@ -270,10 +273,11 @@ fig1_indiv_size10 <- ES_S2_main |>
          is.na(description)) |>
   select(distance, beta, std_error, dep_var_label)
 
-fig1_firm_size10 <- ES_S1_main |>
+fig1_firm_size10 <- ES_S2_main |>
   filter(sample == "le5_panelsize10",
          dep_var == "fe0215_mlo_le",
-         interaction_group == "none") |>
+         interaction_group == "none",
+         is.na(description)) |>
   select(distance, beta, std_error, dep_var_label)
 
 if (nrow(fig1_indiv_size10) > 0 && nrow(fig1_firm_size10) > 0) {
