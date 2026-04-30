@@ -1,0 +1,16 @@
+.DS_Store
+
+# Output PNGs from co-author's pipeline (mirrors GitHub repo's results/plots/)
+*.png
+
+# Per-sample subdirectories of co-author's GitHub plots (mirrored locally)
+elec-le5_panelsize0/
+main-le5_panelsize0/
+main-le5_panelsize10/
+main-le5_panelsize20/
+main-le5_panelsize40/
+main-panelpanSIZE1/
+main-panelpanSIZE2/
+main-panelpanSIZE3/
+fig3_s1_vs_s2/
+src/
