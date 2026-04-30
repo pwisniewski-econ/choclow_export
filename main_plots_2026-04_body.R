@@ -113,6 +113,19 @@ load_event_studies <- function(path_sortie, sub){
 
   if ("treatment_path" %in% names(ES)) {
     ES <- filter(ES, treatment_path)
+  } else {
+    # S1 omits the d = -1 reference period (implicit beta = 0). Insert it
+    # explicitly so plots show a continuous timeline through the cutoff,
+    # mirroring choclow_export-main/src/1-merge_exports.R. This affects:
+    #   - Fig 1 firm wage premium curve (visually invisible: flat near 0)
+    #   - Fig 2 productivity, labor share, firm wage premium (visible gap)
+    #   - Fig 3 wage agreement and election turnout (visible gap)
+    ES <- ES |>
+      group_by(across(any_of(c("sample", "dep_var", "interaction_group", "description")))) |>
+      group_modify(~ add_row(.x, .before = 0,
+                             distance = -1L, beta = 0,
+                             std_error = NA_real_)) |>
+      ungroup()
   }
 
   ES |>
