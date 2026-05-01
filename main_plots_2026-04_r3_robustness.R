@@ -334,6 +334,91 @@ for (lab in c("Firm age (years)", "Firm year of creation", "Mean worker tenure (
 tex_lines <- c(tex_lines, "\\bottomrule", "\\end{tabular}")
 writeLines(tex_lines, file.path(tab_dir, "r3_firm_age_tenure.tex"))
 
+#=================================================================
+# R3.21 -- Alternative productivity measure: TFP Cobb-Douglas (3-year MA)
+#=================================================================
+# Fig 2-style panel using tfp_cd_ma3 with within/between sector decomposition.
+# At d=5 (LE panelsize0): prod_res_ma3 = +0.139, tfp_cd_ma3 = +0.052,
+# tfp_tl_ma3 = +0.034, ln_apl_ma3 = +0.068. The TFP Cobb-Douglas estimate
+# lies between the raw VA/L (no industry adjustment) and the residual TFP
+# from the OLS with sector-specific factor coefficients.
+
+decomp_map <- list(
+  color    = c(`Overall effect` = "#1e2d53",
+               `Within sector`  = "#a0a0a0",
+               `Between sector` = "#82c0e9"),
+  shape    = c(`Overall effect` = 19,
+               `Within sector`  = 18,
+               `Between sector` = 15),
+  linetype = c(`Overall effect` = "solid",
+               `Within sector`  = "solid",
+               `Between sector` = "solid")
+)
+
+draw_label_box <- function(p, xmin, xmax, ymin, ymax){
+  p + annotate("rect", xmin = xmin, xmax = xmax,
+               ymin = ymin, ymax = ymax,
+               fill = "white", color = "grey75", linewidth = 0.35)
+}
+
+plot_fig2_outcome <- function(es_src, dep_var_overall, dep_var_within,
+                              dep_var_between, file_stub) {
+  d <- es_src |>
+    filter(sample == "le5_panelsize0",
+           interaction_group == "none",
+           is.na(description),
+           dep_var %in% c(dep_var_overall, dep_var_within, dep_var_between)) |>
+    mutate(effect_type = factor(case_when(
+      dep_var == dep_var_overall ~ "Overall effect",
+      dep_var == dep_var_within  ~ "Within sector",
+      dep_var == dep_var_between ~ "Between sector"),
+      levels = c("Overall effect", "Between sector", "Within sector"))) |>
+    select(distance, beta, std_error, effect_type)
+
+  if (nrow(d) == 0) return(invisible(NULL))
+
+  d_data_max <- max(d$distance[d$effect_type == "Within sector"], na.rm = TRUE)
+  b_within  <- mean(d$beta[d$effect_type == "Within sector"  & d$distance == d_data_max], na.rm = TRUE)
+  b_between <- mean(d$beta[d$effect_type == "Between sector" & d$distance == d_data_max], na.rm = TRUE)
+
+  if (is.finite(b_within) && is.finite(b_between)) {
+    within_share <- abs(b_within) / (abs(b_within) + abs(b_between))
+    note_expr <- sprintf(
+      'frac(group("|", beta[within], "|"), group("|", beta[within], "|") + group("|", beta[between], "|")) == "%.0f%% (d = %+d)"',
+      100 * within_share, d_data_max
+    )
+  } else {
+    note_expr <- NA_character_
+  }
+
+  panel_breaks <- if (d_data_max < 6) -5:5 else -5:6
+  p <- plot_event(d, decomp_map, "effect_type", x_breaks = panel_breaks)
+  if (!is.na(note_expr)) {
+    yr <- range(c(d$beta - ci_scalar * d$std_error,
+                  d$beta + ci_scalar * d$std_error,
+                  d$beta, 0), na.rm = TRUE)
+    box_h <- 0.20 * diff(yr)
+    box_lift <- 0.06 * diff(yr)
+    p <- draw_label_box(p,
+                        xmin = panel_breaks[1] + 0.3,
+                        xmax = panel_breaks[1] + 4.7,
+                        ymin = yr[2] + box_lift,
+                        ymax = yr[2] + box_lift + box_h) +
+      annotate("text", x = panel_breaks[1] + 0.5,
+               y = yr[2] + box_lift + box_h - 0.04 * diff(yr),
+               hjust = 0, vjust = 1, label = note_expr,
+               parse = TRUE, size = 3.5) +
+      scale_y_continuous(expand = expansion(mult = c(0.05, 0.30)))
+  }
+  save_pdf(p, file_stub, h_in = 5, w_in = 6)
+}
+
+plot_fig2_outcome(ES_S1,
+                  dep_var_overall = "tfp_cd_ma3",
+                  dep_var_within  = "tfp_cd_ma3_d2res",
+                  dep_var_between = "tfp_cd_ma3_d2FE",
+                  file_stub = "fig_2_tfp_cd")
+
 cat("Done. Outputs:\n")
 cat("  PDFs : ", out_dir, "\n", sep = "")
 cat("  Table: ", file.path(tab_dir, "r3_firm_age_tenure.tex"), "\n", sep = "")
