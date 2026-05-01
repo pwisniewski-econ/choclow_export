@@ -419,6 +419,13 @@ plot_fig2_outcome(ES_S1,
                   dep_var_between = "tfp_cd_ma3_d2FE",
                   file_stub = "fig_2_tfp_cd")
 
+# Long-run timing: tfp_cd_mean_0215 (firm-level fixed average over 2002-2015)
+plot_fig2_outcome(ES_S1,
+                  dep_var_overall = "tfp_cd_mean_0215",
+                  dep_var_within  = "tfp_cd_mean_0215_d2res",
+                  dep_var_between = "tfp_cd_mean_0215_d2FE",
+                  file_stub = "fig_2_tfp_cd_mean0215")
+
 cat("Done. Outputs:\n")
 cat("  PDFs : ", out_dir, "\n", sep = "")
 cat("  Table: ", file.path(tab_dir, "r3_firm_age_tenure.tex"), "\n", sep = "")
