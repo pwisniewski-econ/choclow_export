@@ -2,7 +2,7 @@
 # firm correlates, MLO descriptives, negotiation desc/results/robustness)
 # as .tex fragments. Mirrors plots2026/main_tables_2026-04_body.R.
 #
-# Output: 03_Draft/tables/2026-04/{comprehensivetable,new}/
+# Output: EJ_R1/tables-2026/{comprehensivetable,new}/
 # Filenames mirror the legacy ones for trivial path swaps in LaTeX.
 
 suppressPackageStartupMessages({
@@ -13,7 +13,7 @@ suppressPackageStartupMessages({
 # Paths --------------------------------------------------------------------
 path_S1   <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Layoff/00_ExportsCASD/Export_20260331"
 path_S2   <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Layoff/00_ExportsCASD/Export_20260423"
-out_root  <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Applications/Overleaf/JobDisplacement/03_Draft/tables/2026-04"
+out_root  <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Applications/Overleaf/JobDisplacement/EJ_R1/tables-2026"
 out_comp  <- file.path(out_root, "comprehensivetable")
 out_new   <- file.path(out_root, "new")
 dir.create(out_comp, showWarnings = FALSE, recursive = TRUE)
@@ -619,16 +619,20 @@ desc_neg <- read_csv(file.path(path_S1,
   "misc-descriptive_statistics/desc_sample-acco_elec.csv"),
   show_col_types = FALSE)
 
-# Acco descriptive: 5 outcomes, sample = le5_panelsize0
+# Acco descriptive: 4 outcomes, sample = le5_panelsize0
 # wage_agreement_ind_, wage_agreement_num_, wage_agreement_fail_,
-# extwage_agreement_ind_, hours_agreement_ind_   (the "_alt" / trailing-_ are the
-# subset that excludes firms not in the agreement DB; matches legacy outcomes).
+# hours_agreement_ind_   (the "_alt" / trailing-_ are the subset that excludes
+# firms not in the agreement DB; matches legacy outcomes).
+# extwage_agreement_ind_ ("Extended wage agreement indicator") was dropped in
+# the R1 revision: post-period coefficients on the broader 20-50 / no-FT-filter
+# sample collapse to noise (~-0.02 with CIs containing zero), in contrast to
+# the narrow wage-agreement indicator which preserves the original ~-0.08
+# magnitude. See the R2 letter for the rationale.
 build_acco_desc_table <- function(desc_neg, samp){
   outcomes <- list(
     list("wage_agreement_ind_",   "Wage agreement indicator",      "%.3f"),
     list("wage_agreement_num_",   "\\# Wage agreement",            "%.3f"),
     list("wage_agreement_fail_",  "Wage failure ind.",             "%.3f"),
-    list("extwage_agreement_ind_","Extended wage agr. ind.",       "%.3f"),
     list("hours_agreement_ind_",  "Hours agreement ind.",          "%.3f")
   )
   out <- c(
@@ -709,9 +713,14 @@ cat("Wrote: LEnego_ele_desc.tex\n")
 # =========================================================================
 # Negotiation result / robustness tables
 # =========================================================================
-# LEnego_acc_result: cols (1)..(5) = wage_agreement_ind_07_alt, _num_07_alt,
-# _fail_07_alt, extwage_agreement_ind_07_alt, hours_agreement_ind_07_alt.
+# LEnego_acc_result: cols (1)..(4) = wage_agreement_ind_07_alt, _num_07_alt,
+# _fail_07_alt, hours_agreement_ind_07_alt.
 # d in {-3, -2, -1=REF, 0..4} (legacy goes to d=4).
+# extwage_agreement_ind_07_alt (originally column 4 = "Extended wage agreement
+# indicator") was dropped in the R1 revision because the post-period
+# coefficient collapses to ~-0.02 with CIs containing zero on the broader
+# 20-50 / no-FT-filter sample, while the pre-trend remains ~+0.02. The
+# outcome is no longer informative; see the R2 letter for the rationale.
 get_es_elec <- function(DF, dep, samp, distances, group = "none", desc = NA){
   DF |>
     filter(sample == samp,
@@ -741,7 +750,6 @@ build_acc_result <- function(){
     list(dep = "wage_agreement_ind_07_alt",     lab = "Wage agree. ind."),
     list(dep = "wage_agreement_num_07_alt",     lab = "\\# Wage agree."),
     list(dep = "wage_agreement_fail_07_alt",    lab = "Wage fail. ind."),
-    list(dep = "extwage_agreement_ind_07_alt",  lab = "Ext. wage a. ind."),
     list(dep = "hours_agreement_ind_07_alt",    lab = "Hours agree. ind.")
   )
   data_cols <- map(cols, \(c) get_es_elec(ES_S1_elec, c$dep, "le5_panelsize0-acco_alt",

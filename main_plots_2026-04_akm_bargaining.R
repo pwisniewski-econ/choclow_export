@@ -1,5 +1,5 @@
 # Binned scatter: firm wage premium vs bargaining outcomes (referee 1, 1b).
-# Produces 2 PDFs in 03_Draft/graphs/2026-04/:
+# Produces 2 PDFs in EJ_R1/figures-2026/:
 #   firm_LE_binscatter_wage_agreement.pdf
 #   firm_LE_binscatter_election_turnout.pdf
 #
@@ -11,7 +11,7 @@ library(tidyverse)
 library(readr)
 
 path_S1 <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Layoff/00_ExportsCASD/Export_20260331"
-out_dir <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Applications/Overleaf/JobDisplacement/03_Draft/graphs/2026-04"
+out_dir <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Applications/Overleaf/JobDisplacement/EJ_R1/figures-2026"
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 theme_choclow <- function(){

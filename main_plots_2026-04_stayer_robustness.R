@@ -1,5 +1,5 @@
 # Robustness for referee 2 / stayer-control group: MLO30 sample.
-# Produces 8 PDFs in 03_Draft/graphs/2026-04/:
+# Produces 8 PDFs in EJ_R1/figures-2026/:
 #   fig_1_wage_decomposition_mlo30_{baseline,stayer}.pdf
 #   fig_2_{productivity,labor_share,firm_premium}_mlo30_{baseline,stayer}.pdf
 # Sample mapping:
@@ -14,7 +14,7 @@ library(readr)
 
 path_S1 <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Layoff/00_ExportsCASD/Export_20260331"
 path_S2 <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Layoff/00_ExportsCASD/Export_20260423"
-out_dir <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Applications/Overleaf/JobDisplacement/03_Draft/graphs/2026-04"
+out_dir <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Applications/Overleaf/JobDisplacement/EJ_R1/figures-2026"
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 ci_scalar    <- 2.576
@@ -93,7 +93,32 @@ plot_event <- function(DF, scale_map, group_var, legend_nrow = 2,
 draw_label_box <- function(p, xmin, xmax, ymin, ymax){
   p + annotate("rect", xmin = xmin, xmax = xmax,
                ymin = ymin, ymax = ymax,
-               fill = "white", color = "grey75", linewidth = 0.35)
+               fill = NA, color = "#525c66", linewidth = 0.35)
+}
+
+# Stack multiple plotmath expression strings into one atop() string for
+# annotate("label", parse = TRUE). Mirrors the helper in
+# main_plots_2026-04_body.R.
+stack_atop <- function(lines){
+  if (length(lines) == 1L) return(lines[[1]])
+  expr <- lines[[length(lines)]]
+  for (i in (length(lines) - 1L):1L) {
+    expr <- paste0("atop(", lines[[i]], ", ", expr, ")")
+  }
+  expr
+}
+
+add_ratio_box <- function(p, x, y, lines, size = 3.6,
+                          color = "#525c66", fill = NA){
+  p + annotate("label",
+               x = x, y = y,
+               label = stack_atop(lines), parse = TRUE,
+               hjust = 0, vjust = 1, size = size,
+               label.padding = unit(0.5, "lines"),
+               label.r       = unit(0.15, "lines"),
+               label.size    = 0.3,
+               color = color,
+               fill  = fill)
 }
 
 load_event_studies <- function(path_sortie, sub){
@@ -187,21 +212,18 @@ plot_fig1 <- function(df_fig1, file_stub) {
            pct(b_AKM_6, b_hourly_6), '%"')
   )
 
-  x_anchor <- 2.6
-  y_top    <- -0.60
-  y_step   <- 0.09
+  # Auto-fit y range to data + 99% CIs. Round y_low to nearest 0.2 (so
+  # the 0.2-spaced break sequence always includes 0); round y_high to
+  # nearest 0.1 (keeps the top edge tight to the small positive values).
+  yr1 <- range(c(df_fig1$beta - ci_scalar * df_fig1$std_error,
+                 df_fig1$beta + ci_scalar * df_fig1$std_error, 0),
+               na.rm = TRUE)
+  y_low_1  <- floor(yr1[1] * 5) / 5
+  y_high_1 <- ceiling(yr1[2] * 10) / 10
   p <- plot_event(df_fig1, main_map, "dep_var_label") +
-    scale_y_continuous(breaks = seq(-1, .2, .2), limits = c(-1, .2))
-  p <- draw_label_box(p,
-                      xmin = x_anchor - 0.4, xmax = 6.4,
-                      ymin = y_top - 2.7 * y_step,
-                      ymax = y_top + 0.5 * y_step) +
-    annotate("text", x = x_anchor, y = y_top,            hjust = 0, vjust = 1,
-             label = ratio_lines[1], parse = TRUE, size = 3.6) +
-    annotate("text", x = x_anchor, y = y_top - y_step,   hjust = 0, vjust = 1,
-             label = ratio_lines[2], parse = TRUE, size = 3.6) +
-    annotate("text", x = x_anchor, y = y_top - 2*y_step, hjust = 0, vjust = 1,
-             label = ratio_lines[3], parse = TRUE, size = 3.6)
+    scale_y_continuous(breaks = seq(y_low_1, 0, 0.2),
+                       limits = c(y_low_1, y_high_1))
+  p <- add_ratio_box(p, x = -4.8, y = -0.40, lines = ratio_lines, size = 3.6)
   save_pdf(p, file_stub)
 }
 
@@ -235,31 +257,39 @@ plot_fig2_panel <- function(sample_name, label, file_stub) {
   if (is.finite(b_within) && is.finite(b_between)) {
     within_share <- abs(b_within) / (abs(b_within) + abs(b_between))
     note_expr <- sprintf(
-      'frac(group("|", beta[within], "|"), group("|", beta[within], "|") + group("|", beta[between], "|")) == "%.0f%% (d = %+d)"',
-      100 * within_share, d_data_max
+      'frac(group("|", beta[within], "|"), group("|", beta[within], "|") + group("|", beta[between], "|")) == "%.0f%%"',
+      100 * within_share
     )
   } else {
     note_expr <- NA_character_
   }
 
   panel_breaks <- if (d_data_max < 6) -5:5 else -5:6
-  p <- plot_event(df, decomp_map, "effect_type", x_breaks = panel_breaks)
+
+  # Auto-compute y range from coefficients + 99% CIs, rounded to 0.05.
+  # Mirrors the Fig 2 (LE) treatment: tight y-axis, box anchored in
+  # the empty top-left zone of the data range.
+  yr <- range(c(df$beta - ci_scalar * df$std_error,
+                df$beta + ci_scalar * df$std_error, 0), na.rm = TRUE)
+  y_low_2  <- floor(yr[1]   * 20) / 20
+  y_high_2 <- ceiling(yr[2] * 20) / 20
+  y_breaks_2 <- round(seq(y_low_2, y_high_2, 0.05), 2)
+
+  p <- plot_event(df, decomp_map, "effect_type", x_breaks = panel_breaks) +
+    scale_y_continuous(limits = c(y_low_2, y_high_2),
+                       breaks = y_breaks_2,
+                       labels = function(x) sprintf("%.2f", x))
+
   if (!is.na(note_expr)) {
-    yr <- range(c(df$beta - ci_scalar * df$std_error,
-                  df$beta + ci_scalar * df$std_error,
-                  df$beta, 0), na.rm = TRUE)
-    box_h <- 0.20 * diff(yr)
-    box_lift <- 0.06 * diff(yr)
-    p <- draw_label_box(p,
-                        xmin = panel_breaks[1] + 0.3,
-                        xmax = panel_breaks[1] + 4.7,
-                        ymin = yr[2] + box_lift,
-                        ymax = yr[2] + box_lift + box_h) +
-      annotate("text", x = panel_breaks[1] + 0.5,
-               y = yr[2] + box_lift + box_h - 0.04 * diff(yr),
-               hjust = 0, vjust = 1, label = note_expr,
-               parse = TRUE, size = 3.5) +
-      scale_y_continuous(expand = expansion(mult = c(0.05, 0.30)))
+    p <- p + annotate("label",
+                      x = panel_breaks[1] + 0.1, y = y_high_2,
+                      label = note_expr, parse = TRUE,
+                      hjust = 0, vjust = 1, size = 3.2,
+                      label.padding = unit(0.5, "lines"),
+                      label.r       = unit(0.15, "lines"),
+                      label.size    = 0.3,
+                      color = "#525c66",
+                      fill  = NA)
   }
   save_pdf(p, file_stub, h_in = 5, w_in = 6)
 }

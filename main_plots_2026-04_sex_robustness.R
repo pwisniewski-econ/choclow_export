@@ -1,5 +1,5 @@
 # Robustness for referee 1, item 3(d): wage decomposition by sex.
-# Produces 2 PDFs in 03_Draft/graphs/2026-04/:
+# Produces 2 PDFs in EJ_R1/figures-2026/:
 #   fig_1_wage_decomposition_men.pdf    (sx:1)
 #   fig_1_wage_decomposition_women.pdf  (sx:0)
 #
@@ -11,7 +11,7 @@ library(readr)
 
 path_S1 <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Layoff/00_ExportsCASD/Export_20260331"
 path_S2 <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Layoff/00_ExportsCASD/Export_20260423"
-out_dir <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Applications/Overleaf/JobDisplacement/03_Draft/graphs/2026-04"
+out_dir <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Applications/Overleaf/JobDisplacement/EJ_R1/figures-2026"
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 ci_scalar    <- 2.576
@@ -78,7 +78,33 @@ plot_event <- function(DF, scale_map, group_var, legend_nrow = 2,
 draw_label_box <- function(p, xmin, xmax, ymin, ymax){
   p + annotate("rect", xmin = xmin, xmax = xmax,
                ymin = ymin, ymax = ymax,
-               fill = "white", color = "grey75", linewidth = 0.35)
+               fill = NA, color = "#525c66", linewidth = 0.35)
+}
+
+# Stack multiple plotmath expression strings into one atop() string for
+# annotate("label", parse = TRUE). Mirrors the helper in
+# main_plots_2026-04_body.R so the wage-decomposition figures share the
+# same look across all robustness scripts.
+stack_atop <- function(lines){
+  if (length(lines) == 1L) return(lines[[1]])
+  expr <- lines[[length(lines)]]
+  for (i in (length(lines) - 1L):1L) {
+    expr <- paste0("atop(", lines[[i]], ", ", expr, ")")
+  }
+  expr
+}
+
+add_ratio_box <- function(p, x, y, lines, size = 3.6,
+                          color = "#525c66", fill = NA){
+  p + annotate("label",
+               x = x, y = y,
+               label = stack_atop(lines), parse = TRUE,
+               hjust = 0, vjust = 1, size = size,
+               label.padding = unit(0.5, "lines"),
+               label.r       = unit(0.15, "lines"),
+               label.size    = 0.3,
+               color = color,
+               fill  = fill)
 }
 
 label_dep <- function(x){
@@ -166,21 +192,18 @@ plot_fig1 <- function(df_fig1, file_stub) {
            pct(b_AKM_6, b_hourly_6), '%"')
   )
 
-  x_anchor <- 2.6
-  y_top    <- -0.60
-  y_step   <- 0.09
+  # Auto-fit y range to data + 99% CIs, rounded to nearest 0.1, then place
+  # the ratio box in the bottom-left empty zone (pre-period data is near 0
+  # and the box does not overlap any curves).
+  yr1 <- range(c(df_fig1$beta - ci_scalar * df_fig1$std_error,
+                 df_fig1$beta + ci_scalar * df_fig1$std_error, 0),
+               na.rm = TRUE)
+  y_low_1  <- floor(yr1[1] * 10) / 10
+  y_high_1 <- ceiling(yr1[2] * 10) / 10
   p <- plot_event(df_fig1, main_map, "dep_var_label") +
-    scale_y_continuous(breaks = seq(-1, .2, .2), limits = c(-1, .2))
-  p <- draw_label_box(p,
-                      xmin = x_anchor - 0.4, xmax = 6.4,
-                      ymin = y_top - 2.7 * y_step,
-                      ymax = y_top + 0.5 * y_step) +
-    annotate("text", x = x_anchor, y = y_top,            hjust = 0, vjust = 1,
-             label = ratio_lines[1], parse = TRUE, size = 3.6) +
-    annotate("text", x = x_anchor, y = y_top - y_step,   hjust = 0, vjust = 1,
-             label = ratio_lines[2], parse = TRUE, size = 3.6) +
-    annotate("text", x = x_anchor, y = y_top - 2*y_step, hjust = 0, vjust = 1,
-             label = ratio_lines[3], parse = TRUE, size = 3.6)
+    scale_y_continuous(breaks = seq(y_low_1, 0, 0.2),
+                       limits = c(y_low_1, y_high_1))
+  p <- add_ratio_box(p, x = -4.8, y = -0.40, lines = ratio_lines, size = 3.6)
   save_pdf(p, file_stub)
 }
 

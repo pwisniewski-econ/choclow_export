@@ -9,7 +9,7 @@
 #   ln_lshare_mean_0215     (instead of ln_lshare_ma3)
 #   fe0215_mlo_le           (unchanged; AKM premium is already a 2002-2015 estimate)
 #
-# Output PDFs in 03_Draft/graphs/2026-04/:
+# Output PDFs in EJ_R1/figures-2026/:
 #   fig_2_productivity_mean0215.pdf
 #   fig_2_labor_share_mean0215.pdf
 #   fig_2_firm_premium_mean0215.pdf  (= a copy of fig_2_firm_premium for layout)
@@ -20,7 +20,7 @@ library(tidyverse)
 library(readr)
 
 path_S1 <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Layoff/00_ExportsCASD/Export_20260331"
-out_dir <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Applications/Overleaf/JobDisplacement/03_Draft/graphs/2026-04"
+out_dir <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Applications/Overleaf/JobDisplacement/EJ_R1/figures-2026"
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 ci_scalar    <- 2.576

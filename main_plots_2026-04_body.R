@@ -2,7 +2,7 @@
 # - Fig 1 (wage decomposition): hybrid — FE from S1, individual outcomes from S2
 # - Fig 2 (productivity / labor share / firm premium): firm outcomes from S1
 # - Fig 3 (wage agreement / election turnout): firm-level from S1
-# Output: 03_Draft/graphs/2026-04/*.pdf
+# Output: EJ_R1/figures-2026/*.pdf
 # See PLOTTING_STRATEGY.md (in Export_20260423/updated_scripts/) for the rationale.
 
 library(tidyverse)
@@ -11,7 +11,7 @@ library(readr)
 # Paths --------------------------------------------------------------------
 path_S1 <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Layoff/00_ExportsCASD/Export_20260331"
 path_S2 <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Layoff/00_ExportsCASD/Export_20260423"
-out_dir <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Applications/Overleaf/JobDisplacement/03_Draft/graphs/2026-04"
+out_dir <- "/Users/clementmalgouyres/Library/CloudStorage/Dropbox/Applications/Overleaf/JobDisplacement/EJ_R1/figures-2026"
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 # Constants ----------------------------------------------------------------
@@ -98,11 +98,42 @@ plot_event <- function(DF, scale_map, group_var, legend_nrow = 2,
            linetype = guide_legend(nrow = legend_nrow))
 }
 
-# Subtle, journal-style label box.
+# Subtle, journal-style label box. Fill is transparent (NA) so panel
+# gridlines and any data behind the box show through; only the thin
+# grey border remains visible.
 draw_label_box <- function(p, xmin, xmax, ymin, ymax){
   p + annotate("rect", xmin = xmin, xmax = xmax,
                ymin = ymin, ymax = ymax,
-               fill = "white", color = "grey75", linewidth = 0.35)
+               fill = NA, color = "#525c66", linewidth = 0.35)
+}
+
+# Pack multiple plotmath expression strings into one atop() string
+# suitable for parse = TRUE. Used to stack 3 ratio lines inside a
+# single annotate("label", ...) call so the bounding box has uniform
+# label.padding on all four sides (avoids the manually-tuned rect with
+# asymmetric margins).
+stack_atop <- function(lines){
+  if (length(lines) == 1L) return(lines[[1]])
+  expr <- lines[[length(lines)]]
+  for (i in (length(lines) - 1L):1L) {
+    expr <- paste0("atop(", lines[[i]], ", ", expr, ")")
+  }
+  expr
+}
+
+# Annotate-label box with constant padding around (multi-line) plotmath.
+# Replaces the rect + per-line annotate("text") combination used earlier.
+add_ratio_box <- function(p, x, y, lines, size = 3.6,
+                          color = "#525c66", fill = NA){
+  p + annotate("label",
+               x = x, y = y,
+               label = stack_atop(lines), parse = TRUE,
+               hjust = 0, vjust = 1, size = size,
+               label.padding = unit(0.5, "lines"),
+               label.r       = unit(0.15, "lines"),
+               label.size    = 0.3,
+               color = color,
+               fill  = fill)
 }
 
 # Loader: harmonize labels and (S2) filter treatment_path == TRUE ----------
@@ -200,23 +231,22 @@ ratio_lines <- c(
          pct(b_AKM_6, b_hourly_6), '%"')
 )
 
-# Empty zone: bottom-right (x in [2.5, 6], y in [-1, -0.55]).
-# All curves at d>=2 are above y=-0.55; the dip at d=0 (~-0.95) is to the left.
-x_anchor <- 2.6
-y_top    <- -0.60
-y_step   <- 0.09
+# Auto-compute y range from the actual coefficients + 99% CIs, rounded
+# down/up to the nearest 0.1. Avoids the dead headroom that came from
+# the previously-hardcoded c(-1, 0.2) range.
+yr1 <- range(c(fig1$beta - ci_scalar * fig1$std_error,
+               fig1$beta + ci_scalar * fig1$std_error, 0),
+             na.rm = TRUE)
+y_low_1  <- floor(yr1[1] * 10) / 10
+y_high_1 <- ceiling(yr1[2] * 10) / 10
+
+# Empty zone: bottom-left (x in [-5, -1], y in [y_low_1, ~-0.4]).
+# All curves at d in [-5, -1] sit near y=0; the dramatic drop is at d=0,
+# so the box does not overlap any data lines or markers.
 p1 <- plot_event(fig1, main_map, "dep_var_label") +
-  scale_y_continuous(breaks = seq(-1, .2, .2), limits = c(-1, .2))
-p1 <- draw_label_box(p1,
-                     xmin = x_anchor - 0.4, xmax = 6.4,
-                     ymin = y_top - 2.7 * y_step,
-                     ymax = y_top + 0.5 * y_step) +
-  annotate("text", x = x_anchor, y = y_top,            hjust = 0, vjust = 1,
-           label = ratio_lines[1], parse = TRUE, size = 3.6) +
-  annotate("text", x = x_anchor, y = y_top - y_step,   hjust = 0, vjust = 1,
-           label = ratio_lines[2], parse = TRUE, size = 3.6) +
-  annotate("text", x = x_anchor, y = y_top - 2*y_step, hjust = 0, vjust = 1,
-           label = ratio_lines[3], parse = TRUE, size = 3.6)
+  scale_y_continuous(breaks = seq(y_low_1, 0, 0.2),
+                     limits = c(y_low_1, y_high_1))
+p1 <- add_ratio_box(p1, x = -4.8, y = -0.40, lines = ratio_lines, size = 3.6)
 save_pdf(p1, "fig_1_wage_decomposition")
 
 # Robustness: Figure 1 with the unrestricted AKM (fe0215_god2 — no exclusion of
@@ -250,16 +280,8 @@ ratio_lines_god2 <- c(
 
 p1_god2 <- plot_event(fig1_god2, main_map, "dep_var_label") +
   scale_y_continuous(breaks = seq(-1, .2, .2), limits = c(-1, .2))
-p1_god2 <- draw_label_box(p1_god2,
-                          xmin = x_anchor - 0.4, xmax = 6.4,
-                          ymin = y_top - 2.7 * y_step,
-                          ymax = y_top + 0.5 * y_step) +
-  annotate("text", x = x_anchor, y = y_top,            hjust = 0, vjust = 1,
-           label = ratio_lines_god2[1], parse = TRUE, size = 3.6) +
-  annotate("text", x = x_anchor, y = y_top - y_step,   hjust = 0, vjust = 1,
-           label = ratio_lines_god2[2], parse = TRUE, size = 3.6) +
-  annotate("text", x = x_anchor, y = y_top - 2*y_step, hjust = 0, vjust = 1,
-           label = ratio_lines_god2[3], parse = TRUE, size = 3.6)
+p1_god2 <- add_ratio_box(p1_god2, x = -4.8, y = -0.50,
+                         lines = ratio_lines_god2, size = 3.6)
 save_pdf(p1_god2, "fig_1_wage_decomposition_god2")
 
 # Robustness: Figure 1 on the LE sample restricted to firms with at least 10
@@ -302,18 +324,13 @@ if (nrow(fig1_indiv_size10) > 0 && nrow(fig1_firm_size10) > 0) {
            pct(b_AKM_6_s10, b_hourly_6_s10), '%"')
   )
 
+  # Place the ratio box in the bottom-left empty zone, where pre-period
+  # data (d in [-5, -1]) sit near y = 0 and the box does not overlap any
+  # of the four event-study curves.
   p1_size10 <- plot_event(fig1_size10, main_map, "dep_var_label") +
     scale_y_continuous(breaks = seq(-1, .2, .2), limits = c(-1, .2))
-  p1_size10 <- draw_label_box(p1_size10,
-                              xmin = x_anchor - 0.4, xmax = 6.4,
-                              ymin = y_top - 2.7 * y_step,
-                              ymax = y_top + 0.5 * y_step) +
-    annotate("text", x = x_anchor, y = y_top,            hjust = 0, vjust = 1,
-             label = ratio_lines_s10[1], parse = TRUE, size = 3.6) +
-    annotate("text", x = x_anchor, y = y_top - y_step,   hjust = 0, vjust = 1,
-             label = ratio_lines_s10[2], parse = TRUE, size = 3.6) +
-    annotate("text", x = x_anchor, y = y_top - 2*y_step, hjust = 0, vjust = 1,
-             label = ratio_lines_s10[3], parse = TRUE, size = 3.6)
+  p1_size10 <- add_ratio_box(p1_size10, x = -4.8, y = -0.50,
+                             lines = ratio_lines_s10, size = 3.6)
   save_pdf(p1_size10, "fig_1_wage_decomposition_size10")
 }
 
@@ -344,8 +361,8 @@ for (spec in fig2_specs) {
   if (is.finite(b_within) && is.finite(b_between)) {
     within_share <- abs(b_within) / (abs(b_within) + abs(b_between))
     note_expr <- sprintf(
-      'frac(group("|", beta[within], "|"), group("|", beta[within], "|") + group("|", beta[between], "|")) == "%.0f%% (d = %+d)"',
-      100 * within_share, d_data_max
+      'frac(group("|", beta[within], "|"), group("|", beta[within], "|") + group("|", beta[between], "|")) == "%.0f%%"',
+      100 * within_share
     )
   } else {
     note_expr <- NA_character_
@@ -354,26 +371,36 @@ for (spec in fig2_specs) {
   # Per-panel x range: productivity stops at d=+5 (balance-sheet lag),
   # so we don't pad an empty +6 tick. Other firm outcomes go to d=+6.
   panel_breaks <- if (d_data_max < 6) -5:5 else -5:6
-  p <- plot_event(df, decomp_map, "effect_type", x_breaks = panel_breaks)
+
+  # Auto-compute y range from coefficients + 99% CIs, rounded to 0.05.
+  # This eliminates the previous expansion/headroom approach (the box now
+  # sits inside the empty top-left zone of the data range, like Fig 1).
+  yr <- range(c(df$beta - ci_scalar * df$std_error,
+                df$beta + ci_scalar * df$std_error, 0), na.rm = TRUE)
+  y_low_2  <- floor(yr[1]   * 20) / 20
+  y_high_2 <- ceiling(yr[2] * 20) / 20
+  # round() avoids the seq() floating-point glitch that produced labels
+  # like "2.775558e-17" instead of "0.00".
+  y_breaks_2 <- round(seq(y_low_2, y_high_2, 0.05), 2)
+
+  p <- plot_event(df, decomp_map, "effect_type", x_breaks = panel_breaks) +
+    scale_y_continuous(limits = c(y_low_2, y_high_2),
+                       breaks = y_breaks_2,
+                       labels = function(x) sprintf("%.2f", x))
+
   if (!is.na(note_expr)) {
-    # Place the box ABOVE the data range (in extra y headroom). This avoids
-    # crossing the y=0 line and the y-axis tick labels. Box xmin/xmax stay
-    # inside the data area (away from the left y-axis labels).
-    yr <- range(c(df$beta - ci_scalar * df$std_error,
-                  df$beta + ci_scalar * df$std_error,
-                  df$beta, 0), na.rm = TRUE)
-    box_h <- 0.20 * diff(yr)   # box vertical height (in data units)
-    box_lift <- 0.06 * diff(yr) # gap above data
-    p <- draw_label_box(p,
-                        xmin = panel_breaks[1] + 0.3,
-                        xmax = panel_breaks[1] + 4.7,
-                        ymin = yr[2] + box_lift,
-                        ymax = yr[2] + box_lift + box_h) +
-      annotate("text", x = panel_breaks[1] + 0.5,
-               y = yr[2] + box_lift + box_h - 0.04 * diff(yr),
-               hjust = 0, vjust = 1, label = note_expr,
-               parse = TRUE, size = 3.5) +
-      scale_y_continuous(expand = expansion(mult = c(0.05, 0.30)))
+    # Box anchored in the top-left empty zone: pre-period (d in [-5, -1])
+    # data sit near 0, so y close to y_high_2 is empty. hjust=0/vjust=1
+    # places the top-left corner of the label box at (x, y).
+    p <- p + annotate("label",
+                      x = panel_breaks[1] + 0.1, y = y_high_2,
+                      label = note_expr, parse = TRUE,
+                      hjust = 0, vjust = 1, size = 3.2,
+                      label.padding = unit(0.5, "lines"),
+                      label.r       = unit(0.15, "lines"),
+                      label.size    = 0.3,
+                      color = "#525c66",
+                      fill  = NA)
   }
   save_pdf(p, spec[["file"]], h_in = 5, w_in = 6)
 }
@@ -395,7 +422,13 @@ for (spec in fig3_specs) {
     warning("No rows for Fig 3 / ", spec$dep)
     next
   }
-  p <- plot_event(df, default_map, "grp") + theme(legend.position = "none")
+  # Restrict the x-axis to the horizons where the coefficient is actually
+  # defined (the bargaining-data window stops at d=+4 for accords and
+  # d=+3 for elections, while other figures span d in [-5, +6]).
+  panel_breaks_3 <- seq(min(df$distance, na.rm = TRUE),
+                        max(df$distance, na.rm = TRUE))
+  p <- plot_event(df, default_map, "grp", x_breaks = panel_breaks_3) +
+    theme(legend.position = "none")
   save_pdf(p, spec$file, h_in = 5, w_in = 6)
 }
 
